@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sports Tournament Management</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7f4;
+            margin: 20px;
+            color: #26352b;
+        }
+
+        h1 {
+            color: #267347;
+        }
+
+        h2 {
+            font-size: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .card {
+            background: white;
+            padding: 18px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            border: 1px solid #dce7de;
+        }
+
+        input, select {
+            padding: 9px;
+            margin: 5px 3px 8px 0;
+            border: 1px solid #cbd5cc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        button {
+            padding: 9px 13px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 3px;
+            background: #267347;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .delete {
+            background: #c74747;
+        }
+
+        .edit {
+            background: #d99b25;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #765b12;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat {
+            flex: 1;
+            min-width: 120px;
+            background: #e7f4e9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .stat strong {
+            font-size: 24px;
+            display: block;
+            margin-top: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border: 1px solid #dce7de;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #e7f4e9;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        #message {
+            color: #267347;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            color: #777;
+            padding: 15px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>RHS Sports Tournament Center</h1>
+    <p>Manage teams, scores, and tournament standings in one place.</p>
+
+    <div class="stats">
+        <div class="stat">
+            Total Teams
+            <strong id="totalTeams">0</strong>
+        </div>
+
+        <div class="stat">
+            Matches Played
+            <strong id="totalMatches">0</strong>
+        </div>
+
+        <div class="stat">
+            Total Points Scored
+            <strong id="totalPoints">0</strong>
+        </div>
+    </div>
+
+    <p id="message"></p>
+
+    <div class="card">
+        <h2>Team Management</h2>
+
+        <input type="text" id="teamName" placeholder="Team Name">
+        <input type="text" id="coach" placeholder="Coach Name">
+        <input type="text" id="sport" placeholder="Sport (e.g. Basketball)">
+
+        <button id="teamButton" onclick="saveTeam()">Add Team</button>
+        <button onclick="clearTeamForm()">Clear</button>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Team</th>
+                        <th>Coach</th>
+                        <th>Sport</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="teamTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Match Scores</h2>
+
+        <label>Team 1:</label>
+        <select id="team1"></select>
+
+        <label>Team 2:</label>
+        <select id="team2"></select>
+
+        <br>
+
+        <input type="number" id="score1" placeholder="Team 1 Score" min="0" step="1">
+        <input type="number" id="score2" placeholder="Team 2 Score" min="0" step="1">
+
+        <button id="matchButton" onclick="saveMatch()">Record Match</button>
+        <button onclick="clearMatchForm()">Clear</button>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Match</th>
+                        <th>Score</th>
+                        <th>Result</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="matchTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Tournament Standings</h2>
+
+        <p>Win = 3 points | Draw = 1 point each | Loss = 0 points</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team</th>
+                        <th>Played</th>
+                        <th>Won</th>
+                        <th>Drawn</th>
+                        <th>Lost</th>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+
+                <tbody id="standingTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        Sports Tournament Management System | Salinas, Hermogeno Project
+    </footer>
+
+</div>
+
+<script>
+    var savedTeams = localStorage.getItem("sports_teams_complete");
+    var savedMatches = localStorage.getItem("sports_matches_complete");
+
+    var teams = savedTeams ? JSON.parse(savedTeams) : [];
+    var matches = savedMatches ? JSON.parse(savedMatches) : [];
+
+    var editTeamIndex = -1;
+    var editMatchIndex = -1;
+
+    function saveData() {
+        localStorage.setItem(
+            "sports_teams_complete",
+            JSON.stringify(teams)
+        );
+
+        localStorage.setItem(
+            "sports_matches_complete",
+            JSON.stringify(matches)
+        );
+    }
+
+    function showMessage(message) {
+        document.getElementById("message").textContent = message;
+    }
+
+    function saveTeam() {
+        var name = document.getElementById("teamName").value.trim();
+        var coachName = document.getElementById("coach").value.trim();
+        var sportName = document.getElementById("sport").value.trim();
+
+        if (!name || !coachName || !sportName) {
+            alert("Please fill in all team information.");
+            return;
+        }
+
+        var duplicate = teams.some(function(team, index) {
+            return team.name.toLowerCase() === name.toLowerCase()
+                && index !== editTeamIndex;
+        });
+
+        if (duplicate) {
+            alert("This team name already exists.");
+            return;
+        }
+
+        if (editTeamIndex === -1) {
+            teams.push({
+                id: Date.now(),
+                name: name,
+                coach: coachName,
+                sport: sportName
+            });
+
+            showMessage("Team added successfully!");
+        } else {
+            teams[editTeamIndex].name = name;
+            teams[editTeamIndex].coach = coachName;
+            teams[editTeamIndex].sport = sportName;
+
+            showMessage("Team updated successfully!");
+        }
+
+        clearTeamForm();
+        saveData();
+        displayAll();
+    }
+
+    function editTeam(index) {
+        editTeamIndex = index;
+
+        document.getElementById("teamName").value = teams[index].name;
+        document.getElementById("coach").value = teams[index].coach;
+        document.getElementById("sport").value = teams[index].sport;
+
+        document.getElementById("teamButton").textContent = "Update Team";
+
+        showMessage("Editing team: " + teams[index].name);
+    }
+
+    function deleteTeam(index) {
+        var name = teams[index].name;
+
+        if (!confirm("WARNING: Delete " + name + " and all its recorded matches?")) {
+            return;
+        }
+
+        var id = teams[index].id;
+
+        teams.splice(index, 1);
+
+        matches = matches.filter(function(match) {
+            return match.team1 !== id && match.team2 !== id;
+        });
+
+        clearTeamForm();
+        clearMatchForm();
+        saveData();
+        displayAll();
+
+        showMessage("Team and its matches deleted.");
+    }
+
+    function clearTeamForm() {
+        document.getElementById("teamName").value = "";
+        document.getElementById("coach").value = "";
+        document.getElementById("sport").value = "";
+
+        editTeamIndex = -1;
+
+        document.getElementById("teamButton").textContent = "Add Team";
+    }
+
+    function saveMatch() {
+        if (teams.length < 2) {
+            alert("Please add at least two teams first.");
+            return;
+        }
+
+        var team1 = Number(document.getElementById("team1").value);
+        var team2 = Number(document.getElementById("team2").value);
+
+        var score1Text = document.getElementById("score1").value;
+        var score2Text = document.getElementById("score2").value;
+
+        var score1 = Number(score1Text);
+        var score2 = Number(score2Text);
+
+        if (team1 === team2) {
+            alert("A team cannot play against itself.");
+            return;
+        }
+
+        if (
+            score1Text === "" ||
+            score2Text === "" ||
+            !Number.isInteger(score1) ||
+            !Number.isInteger(score2) ||
+            score1 < 0 ||
+            score2 < 0
+        ) {
+            alert("Enter whole-number scores that are zero or higher.");
+            return;
+        }
+
+        var match = {
+            team1: team1,
+            team2: team2,
+            score1: score1,
+            score2: score2
+        };
+
+        if (editMatchIndex === -1) {
+            matches.push(match);
+            showMessage("Match recorded successfully!");
+        } else {
+            matches[editMatchIndex] = match;
+            showMessage("Match updated successfully!");
+        }
+
+        clearMatchForm();
+        saveData();
+        displayAll();
+    }
+
+    function editMatch(index) {
+        editMatchIndex = index;
+
+        document.getElementById("team1").value = matches[index].team1;
+        document.getElementById("team2").value = matches[index].team2;
+        document.getElementById("score1").value = matches[index].score1;
+        document.getElementById("score2").value = matches[index].score2;
+
+        document.getElementById("matchButton").textContent = "Update Match";
+
+        showMessage("Editing match scores.");
+    }
+
+    function deleteMatch(index) {
+        if (!confirm("WARNING: Are you sure you want to delete this match?")) {
+            return;
+        }
+
+        matches.splice(index, 1);
+
+        clearMatchForm();
+        saveData();
+        displayAll();
+
+        showMessage("Match deleted successfully.");
+    }
+
+    function clearMatchForm() {
+        document.getElementById("score1").value = "";
+        document.getElementById("score2").value = "";
+
+        editMatchIndex = -1;
+
+        document.getElementById("matchButton").textContent = "Record Match";
+    }
+
+    function getTeamName(id) {
+        var team = teams.find(function(item) {
+            return item.id === id;
+        });
+
+        return team ? team.name : "Unknown Team";
+    }
+
+    function displayTeams() {
+        var table = "";
+
+        for (var i = 0; i < teams.length; i++) {
+            table += "<tr>";
+            table += "<td>" + escapeHTML(teams[i].name) + "</td>";
+            table += "<td>" + escapeHTML(teams[i].coach) + "</td>";
+            table += "<td>" + escapeHTML(teams[i].sport) + "</td>";
+
+            table += "<td>";
+            table += "<button class='edit' onclick='editTeam(" + i + ")'>Edit</button>";
+            table += "<button class='delete' onclick='deleteTeam(" + i + ")'>Delete</button>";
+            table += "</td>";
+
+            table += "</tr>";
+        }
+
+        document.getElementById("teamTable").innerHTML = table;
+    }
+
+    function displayMatches() {
+        var table = "";
+
+        for (var i = 0; i < matches.length; i++) {
+            var m = matches[i];
+            var result = "Draw";
+
+            if (m.score1 > m.score2) {
+                result = getTeamName(m.team1) + " wins";
+            } else if (m.score2 > m.score1) {
+                result = getTeamName(m.team2) + " wins";
+            }
+
+            table += "<tr>";
+
+            table += "<td>" +
+                escapeHTML(getTeamName(m.team1)) + " vs " +
+                escapeHTML(getTeamName(m.team2)) +
+                "</td>";
+
+            table += "<td>" + m.score1 + " - " + m.score2 + "</td>";
+            table += "<td>" + escapeHTML(result) + "</td>";
+
+            table += "<td>";
+            table += "<button class='edit' onclick='editMatch(" + i + ")'>Edit</button>";
+            table += "<button class='delete' onclick='deleteMatch(" + i + ")'>Delete</button>";
+            table += "</td>";
+
+            table += "</tr>";
+        }
+
+        document.getElementById("matchTable").innerHTML = table;
+    }
+
+    function displayStandings() {
+        var standings = [];
+
+        for (var i = 0; i < teams.length; i++) {
+            standings.push({
+                id: teams[i].id,
+                name: teams[i].name,
+                played: 0,
+                won: 0,
+                drawn: 0,
+                lost: 0,
+                points: 0
+            });
+        }
+
+        for (var i = 0; i < matches.length; i++) {
+            var m = matches[i];
+
+            var a = standings.find(function(t) {
+                return t.id === m.team1;
+            });
+
+            var b = standings.find(function(t) {
+                return t.id === m.team2;
+            });
+
+            if (!a || !b) {
+                continue;
+            }
+
+            a.played++;
+            b.played++;
+
+            if (m.score1 > m.score2) {
+                a.won++;
+                a.points += 3;
+                b.lost++;
+            } else if (m.score2 > m.score1) {
+                b.won++;
+                b.points += 3;
+                a.lost++;
+            } else {
+                a.drawn++;
+                b.drawn++;
+
+                a.points++;
+                b.points++;
+            }
+        }
+
+        standings.sort(function(a, b) {
+            return b.points - a.points ||
+                b.won - a.won ||
+                a.name.localeCompare(b.name);
+        });
+
+        var table = "";
+
+        for (var i = 0; i < standings.length; i++) {
+            var s = standings[i];
+
+            table += "<tr>";
+            table += "<td>" + (i + 1) + "</td>";
+            table += "<td>" + escapeHTML(s.name) + "</td>";
+            table += "<td>" + s.played + "</td>";
+            table += "<td>" + s.won + "</td>";
+            table += "<td>" + s.drawn + "</td>";
+            table += "<td>" + s.lost + "</td>";
+            table += "<td><strong>" + s.points + "</strong></td>";
+            table += "</tr>";
+        }
+
+        document.getElementById("standingTable").innerHTML = table;
+    }
+
+    function escapeHTML(value) {
+        return String(value).replace(/[&<>"']/g, function(char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
+    function displayAll() {
+        displayTeams();
+        displayMatches();
+        displayStandings();
+
+        document.getElementById("totalTeams").textContent = teams.length;
+        document.getElementById("totalMatches").textContent = matches.length;
+
+        var points = 0;
+
+        for (var i = 0; i < matches.length; i++) {
+            points += matches[i].score1 + matches[i].score2;
+        }
+
+        document.getElementById("totalPoints").textContent = points;
+
+        var options = "";
+
+        for (var i = 0; i < teams.length; i++) {
+            options += "<option value='" + teams[i].id + "'>" +
+                escapeHTML(teams[i].name) +
+                "</option>";
+        }
+
+        document.getElementById("team1").innerHTML = options;
+        document.getElementById("team2").innerHTML = options;
+    }
+
+    displayAll();
+</script>
+
+</body>
+</html>
